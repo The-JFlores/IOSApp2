@@ -9,8 +9,20 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        Text("Hello Scavenger Hunt!") // 👈
-            .padding()
+        NavigationView {
+            // Display a list of clues
+            List(sampleClues) { clue in
+                VStack(alignment: .leading) {
+                    Text(clue.title)
+                        .font(.headline) // Bold title for the location
+                    Text(clue.hint)
+                        .font(.subheadline) // Smaller font for the hint
+                        .foregroundColor(.gray) // Make the hint visually distinct
+                }
+                .padding(.vertical, 4) // Add spacing between items
+            }
+            .navigationTitle("Scavenger Hunt") // Title for the main screen
+        }
     }
 }
 
