@@ -16,11 +16,6 @@
 			path = IOSApp2;
 			sourceTree = "<group>";
 		};
-		89EC002B2E8D75E700C09466 /* Models */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Models;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +32,6 @@
 		89EC000E2E8D719800C09466 = {
 			isa = PBXGroup;
 			children = (
-				89EC002B2E8D75E700C09466 /* Models */,
 				89EC00192E8D719800C09466 /* IOSApp2 */,
 				89EC00182E8D719800C09466 /* Products */,
 			);
@@ -68,7 +62,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				89EC00192E8D719800C09466 /* IOSApp2 */,
-				89EC002B2E8D75E700C09466 /* Models */,
 			);
 			name = IOSApp2;
 			packageProductDependencies = (
