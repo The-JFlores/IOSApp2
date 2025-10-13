@@ -37,7 +37,9 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Scavenger Hunt")
-            .refreshable { vm.loadSampleData() }
+            .refreshable {
+                await vm.fetchCluesFromGeoapify()
+            }
             .alert(rewardMessage, isPresented: $showRewardAlert) {
                 Button("OK", role: .cancel) {}
             }

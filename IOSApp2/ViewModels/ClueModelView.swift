@@ -1,33 +1,58 @@
 //
-//  ClueModelView.swift
+//  ClueViewModel.swift
 //  IOSApp2
 //
 //  Created by Jose Flores on 2025-10-05.
 //
 
-// ViewModels/ClueViewModel.swift
 import Foundation
 import UIKit
+import CoreLocation
 
 @MainActor
 class ClueViewModel: ObservableObject {
     @Published var clues: [Clue] = []
     
     init() {
-        // Sample data (or you can call fetchClues() if using Geoapify)
-        loadSampleData()
+        Task {
+            await fetchCluesFromGeoapify()
+        }
     }
     
-    func loadSampleData() {
-        clues = [
-            Clue(title: "No Frills", hint: "Look for the main entrance", lat: 43.2518, lon: -79.8523, address: "435 Main Street East", website: "https://www.nofrills.ca"),
-            Clue(title: "Local Cinema", hint: "Look for the big movie poster", lat: 43.26, lon: -79.88, address: "200 Cineplex Blvd"),
-            Clue(title: "Downtown Bookstore", hint: "Look for the display with novels", lat: 43.27, lon: -79.86, address: "45 Oak Avenue")
-            // Add up to 10 if desired
-        ]
+    // MARK: - Fetch places from Geoapify API
+    func fetchCluesFromGeoapify() async {
+        // Puedes cambiar "Oakville" por cualquier ciudad o coordenadas
+        let latitude = 43.4453
+        let longitude = -79.6989
+        let apiKey = "8f43f0b72eb34de785b40c14e4a4ca4a"
+        
+        guard let url = URL(string:
+            "https://api.geoapify.com/v2/places?categories=commercial.supermarket,entertainment.cinema,accommodation.hotel,catering.restaurant&filter=circle:\(longitude),\(latitude),3000&bias=proximity:\(longitude),\(latitude)&limit=10&apiKey=\(apiKey)"
+        ) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let decoded = try JSONDecoder().decode(GeoapifyResponse.self, from: data)
+            
+            self.clues = decoded.features.map { feature in
+                let props = feature.properties
+                return Clue(
+                    title: props.name ?? "Unknown Place",
+                    hint: "Look for a place in category \(props.categories?.first ?? "N/A")",
+                    lat: props.lat,
+                    lon: props.lon,
+                    address: props.address_line1 ?? "No address available",
+                    website: props.website
+                )
+            }
+            
+            print("✅ Loaded \(clues.count) places from Geoapify")
+        } catch {
+            print("❌ Error fetching data: \(error)")
+        }
     }
     
-    /// Marks a clue as found and saves the image in data
+    // MARK: - Game logic
     func markClueAsFound(clueID: UUID, image: UIImage?) {
         guard let index = clues.firstIndex(where: { $0.id == clueID }) else { return }
         clues[index].isFound = true
@@ -36,21 +61,11 @@ class ClueViewModel: ObservableObject {
         }
     }
     
-    /// Returns a UIImage from userPhotoData (if available)
     func imageForClue(_ clue: Clue) -> UIImage? {
         if let data = clue.userPhotoData { return UIImage(data: data) }
         return nil
     }
-    
-    // (Optional) If using Geoapify, implement fetchClues() here.
-    // Note: Although we were taught how to use the Geoapify API, I was not able to implement it in this version.
-    // I tried to integrate it, but I couldn’t get it working. I could implement it in the future with guidance or additional practice.
 
-}
-
-extension ClueViewModel {
-    
-    /// Calculate the reward based on found clues
     func calculateReward() -> String {
         let foundCount = clues.filter { $0.isFound }.count
         
@@ -66,11 +81,29 @@ extension ClueViewModel {
         }
     }
     
-    /// Simulate submitting results online
     func submitResults() {
         let rewardMessage = calculateReward()
         print("Submitting results... Reward: \(rewardMessage)")
-        // Here you could implement real network POST in the future
     }
 }
 
+//
+// MARK: - Geoapify API Models
+//
+
+struct GeoapifyResponse: Codable {
+    let features: [GeoapifyFeature]
+}
+
+struct GeoapifyFeature: Codable {
+    let properties: GeoapifyProperties
+}
+
+struct GeoapifyProperties: Codable {
+    let name: String?
+    let lat: Double
+    let lon: Double
+    let address_line1: String?
+    let categories: [String]?
+    let website: String?
+}
