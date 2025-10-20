@@ -4,10 +4,8 @@
 //
 //  Created by Jose Flores on 2025-10-01.
 
-
 import Foundation
 
-/// Unique and consistent model for the app
 struct Clue: Identifiable, Codable {
     let id: UUID
     var title: String
@@ -17,8 +15,9 @@ struct Clue: Identifiable, Codable {
     var address: String?
     var website: String?
     var isFound: Bool = false
-    var userPhotoData: Data? = nil // stores the photo as Data
-    
+    var userPhotoData: Data? = nil
+    var photoDate: String? = nil
+
     init(id: UUID = UUID(),
          title: String,
          hint: String,
@@ -27,7 +26,8 @@ struct Clue: Identifiable, Codable {
          address: String? = nil,
          website: String? = nil,
          isFound: Bool = false,
-         userPhotoData: Data? = nil) {
+         userPhotoData: Data? = nil,
+         photoDate: String? = nil) {
         self.id = id
         self.title = title
         self.hint = hint
@@ -37,5 +37,6 @@ struct Clue: Identifiable, Codable {
         self.website = website
         self.isFound = isFound
         self.userPhotoData = userPhotoData
+        self.photoDate = photoDate
     }
 }

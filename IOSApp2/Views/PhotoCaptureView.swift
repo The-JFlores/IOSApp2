@@ -27,9 +27,7 @@ struct PhotoCaptureView: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.completionHandler(image)
-            }
+            if let image = info[.originalImage] as? UIImage { parent.completionHandler(image) }
             parent.presentationMode.wrappedValue.dismiss()
         }
 

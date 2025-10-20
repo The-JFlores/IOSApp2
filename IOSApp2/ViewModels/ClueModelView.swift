@@ -10,35 +10,98 @@ import UIKit
 import CoreLocation
 
 @MainActor
-class ClueViewModel: ObservableObject {
+class ClueModelView: ObservableObject {
     @Published var clues: [Clue] = []
+    
+    let geoapifyApiKey = "93948f25439b433b8c99ad1a9060396f"
+    
+    // To track which clue is selected for camera or other actions
+    @Published var selectedClue: Clue?
     
     init() {
         Task {
-            await fetchCluesFromGeoapify()
+            await fetchHamiltonPlaces()
         }
     }
     
-    // MARK: - Fetch places from Geoapify API
-    func fetchCluesFromGeoapify() async {
-        // Puedes cambiar "Oakville" por cualquier ciudad o coordenadas
-        let latitude = 43.4453
-        let longitude = -79.6989
-        let apiKey = "8f43f0b72eb34de785b40c14e4a4ca4a"
+    // MARK: - Fetch Hamilton places using Geoapify API
+    func fetchHamiltonPlaces() async {
+        let categories = "catering.restaurant,commercial.supermarket,entertainment.cinema,accommodation.hotel"
+        let minLon = -79.95
+        let minLat = 43.20
+        let maxLon = -79.85
+        let maxLat = 43.30
         
-        guard let url = URL(string:
-            "https://api.geoapify.com/v2/places?categories=commercial.supermarket,entertainment.cinema,accommodation.hotel,catering.restaurant&filter=circle:\(longitude),\(latitude),3000&bias=proximity:\(longitude),\(latitude)&limit=10&apiKey=\(apiKey)"
-        ) else { return }
+        let urlString = "https://api.geoapify.com/v2/places?categories=\(categories)&filter=rect:\(minLon),\(minLat),\(maxLon),\(maxLat)&limit=20&apiKey=\(geoapifyApiKey)"
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Malformed URL")
+            return
+        }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌐 HTTP Status: \(httpResponse.statusCode)")
+            }
+            
             let decoded = try JSONDecoder().decode(GeoapifyResponse.self, from: data)
             
+            // Map features to Clue objects with custom hints
             self.clues = decoded.features.map { feature in
                 let props = feature.properties
+                let title = props.name ?? "Unknown Place"
+                var hint = "Explore this place and discover something interesting!"
+
+                switch title {
+                case "No Frills":
+                    hint = "Grab fresh groceries at low prices."
+                case "Fortinos":
+                    hint = "A trusted local supermarket with great selection."
+                case "Costco":
+                    hint = "Find bulk deals and tasty food court snacks."
+                case "Denninger's Foods of the World":
+                    hint = "Taste foods from around the world in one spot."
+                case "Bread Bar":
+                    hint = "Try their famous pizzas and craft cocktails."
+                case "Shakespeares":
+                    hint = "Classic pub vibes with hearty meals and cold beer."
+                case "Peruviano":
+                    hint = "Enjoy authentic Peruvian cuisine and flavors."
+                case "Tahini's":
+                    hint = "Middle Eastern shawarma and bowls full of flavor."
+                case "Mr. Gao":
+                    hint = "Savor Chinese cuisine with generous portions."
+                case "Em Oi":
+                    hint = "Vietnamese comfort food served fresh daily."
+                case "Electric Diner":
+                    hint = "Retro diner serving brunch and classic milkshakes."
+                case "B-Side Social":
+                    hint = "Bar and grill with live music and great atmosphere."
+                case "Dragon Court":
+                    hint = "Chinese restaurant with dim sum and hot tea."
+                case "Food Basics":
+                    hint = "Affordable supermarket for your daily groceries."
+                case "Strathcona Market":
+                    hint = "A community market with fresh local produce."
+                case "Nations Fresh Foods":
+                    hint = "A huge supermarket offering global ingredients."
+                case "Joya Sushi":
+                    hint = "Japanese restaurant serving creative sushi rolls."
+                case "Bean Bar":
+                    hint = "Trendy café for coffee, desserts, and brunch."
+                case "Eastern Food Market":
+                    hint = "Shop for Asian groceries and specialty products."
+                case "West Town Bar & Grill":
+                    hint = "Neighborhood bar known for its comfort food."
+                default:
+                    hint = "Explore this local gem and see what you find!"
+                }
+
                 return Clue(
-                    title: props.name ?? "Unknown Place",
-                    hint: "Look for a place in category \(props.categories?.first ?? "N/A")",
+                    title: title,
+                    hint: hint,
                     lat: props.lat,
                     lon: props.lon,
                     address: props.address_line1 ?? "No address available",
@@ -46,9 +109,9 @@ class ClueViewModel: ObservableObject {
                 )
             }
             
-            print("✅ Loaded \(clues.count) places from Geoapify")
+            print("✅ Loaded \(clues.count) Hamilton places")
         } catch {
-            print("❌ Error fetching data: \(error)")
+            print("❌ Error fetching Hamilton places: \(error)")
         }
     }
     
@@ -58,14 +121,18 @@ class ClueViewModel: ObservableObject {
         clues[index].isFound = true
         if let img = image, let data = img.jpegData(compressionQuality: 0.8) {
             clues[index].userPhotoData = data
+            clues[index].photoDate = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
         }
     }
     
-    func imageForClue(_ clue: Clue) -> UIImage? {
-        if let data = clue.userPhotoData { return UIImage(data: data) }
-        return nil
+    func processPhotoForClue(clueID: UUID, image: UIImage, completion: @escaping () -> Void) {
+        guard let index = clues.firstIndex(where: { $0.id == clueID }) else { completion(); return }
+        if let data = image.jpegData(compressionQuality: 0.9) { clues[index].userPhotoData = data }
+        clues[index].photoDate = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
+        completion()
     }
-
+    
+    // MARK: - Reward logic
     func calculateReward() -> String {
         let foundCount = clues.filter { $0.isFound }.count
         
@@ -85,12 +152,26 @@ class ClueViewModel: ObservableObject {
         let rewardMessage = calculateReward()
         print("Submitting results... Reward: \(rewardMessage)")
     }
+    
+    // MARK: - Camera & PDF Helpers
+    func selectCamera(for clueID: UUID) {
+        if let clue = clues.first(where: { $0.id == clueID }) {
+            selectedClue = clue
+        }
+    }
+    
+    func generateMultiPDFReport(completion: @escaping (URL?) -> Void) {
+        ReportGenerator.generateReport(for: clues, completion: completion)
+    }
+    
+    func removePhoto(for clueID: UUID) {
+        guard let index = clues.firstIndex(where: { $0.id == clueID }) else { return }
+        clues[index].userPhotoData = nil
+        clues[index].photoDate = nil
+    }
 }
 
-//
-// MARK: - Geoapify API Models
-//
-
+// MARK: - Geoapify Models
 struct GeoapifyResponse: Codable {
     let features: [GeoapifyFeature]
 }

@@ -1,125 +1,156 @@
-// Views/FlipCardView.swift
-// IOSApp2
-// Created by Jose Flores on 2025-10-02.
+//
+//  FlipCardView.swift
+//  IOSApp2
+//
 
 import SwiftUI
 import PhotosUI
+import MapKit
 
 struct FlipCardView: View {
-    let clue: Clue
-    var onPhotoTaken: ((UIImage) -> Void)? = nil   // Optional: callback to notify the view model
-    
-    @State private var flipped = false
+    @Binding var clue: Clue
+    @EnvironmentObject var vm: ClueModelView
+
+    @State private var isFlipped = false
+    @State private var showCamera = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var showCamera = false
 
     var body: some View {
         ZStack {
-            // Front of the card
-            VStack(alignment: .leading, spacing: 6) {
-                Text(clue.title)
-                    .font(.headline)
-                Text(clue.hint)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                
-                if clue.isFound {
-                    Text("✅ Found")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, minHeight: 140)
-            .background(Color.white)
-            .cornerRadius(12)
-            .shadow(radius: 4)
-            .opacity(flipped ? 0 : 1)
-            
-            // Back of the card (rotated 180° internally so it doesn’t appear upside down)
-            VStack(spacing: 10) {
-                if let address = clue.address {
-                    Text("📍 \(address)")
-                        .font(.footnote)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                if let website = clue.website, let url = URL(string: website) {
-                    Link("🌐 Visit website", destination: url)
-                        .font(.footnote)
-                        .foregroundColor(.blue)
-                }
-                
-                if let image = selectedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 120)
-                        .cornerRadius(10)
-                } else {
-                    VStack(spacing: 8) {
-                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            Text("📁 Choose photo")
-                                .font(.footnote)
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Button {
-                            showCamera = true
-                        } label: {
-                            Text("📸 Take photo")
-                                .font(.footnote)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
-            }
-            .padding()
-            .frame(maxWidth: .infinity, minHeight: 140)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
-            .shadow(radius: 4)
-            .opacity(flipped ? 1 : 0)
-            .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0)) // <- Key correction
+            front
+                .opacity(isFlipped ? 0 : 1)
+            back
+                .opacity(isFlipped ? 1 : 0)
         }
-        .rotation3DEffect(.degrees(flipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
-        .animation(.easeInOut(duration: 0.6), value: flipped)
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .background(Color.clear)
         .onTapGesture {
-            flipped.toggle()
-        }
-        .onChange(of: selectedPhoto) { newValue in
-            Task {
-                if let data = try? await newValue?.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    selectedImage = uiImage
-                    onPhotoTaken?(uiImage)
-                }
-            }
-        }
-        .sheet(isPresented: $showCamera) {
-            PhotoCaptureView(sourceType: .camera) { image in
-                selectedImage = image
-                onPhotoTaken?(image)
+            withAnimation(.easeInOut(duration: 0.6)) {
+                isFlipped.toggle()
             }
         }
     }
-}
 
-struct FlipCardView_Previews: PreviewProvider {
-    static var previews: some View {
-        FlipCardView(
-            clue: Clue(
-                title: "Café Central",
-                hint: "Find the best espresso in town",
-                lat: 43.25,
-                lon: -79.88,
-                address: "123 Main St",
-                website: "https://example.com"
-            ),
-            onPhotoTaken: { _ in }
-        )
+    // MARK: - Front View
+    private var front: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(clue.title)
+                .font(.headline)
+                .foregroundColor(.black)
+            
+            Text(clue.hint)
+                .font(.subheadline)
+                .foregroundColor(.black.opacity(0.8))
+            
+            if let photoDate = clue.photoDate {
+                Text("📅 \(photoDate)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
         .padding()
-        .previewLayout(.sizeThatFits)
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(radius: 4)
+        .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x:0,y:1,z:0))
+    }
+
+    // MARK: - Back View
+    private var back: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            
+            HStack(spacing: 12) {
+                if let data = clue.userPhotoData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 60, height: 60)
+                        .clipped()
+                        .cornerRadius(8)
+                } else {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(8)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.title)
+                                .foregroundColor(.gray)
+                        )
+                }
+                Spacer()
+            }
+
+            if let address = clue.address {
+                Text(address)
+                    .font(.subheadline)
+                    .foregroundColor(.black)
+            }
+
+            Text(clue.hint)
+                .font(.caption)
+                .foregroundColor(.black.opacity(0.7))
+
+            if let photoDate = clue.photoDate {
+                Text("📅 \(photoDate)")
+                    .font(.caption2)
+                    .foregroundColor(.red)
+            }
+
+            HStack(spacing: 8) {
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Text("📁 Choose photo")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                        .padding(6)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .onChange(of: selectedPhoto) { newPhoto in
+                    Task {
+                        if let data = try? await newPhoto?.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            selectedImage = uiImage
+                            vm.markClueAsFound(clueID: clue.id, image: uiImage)
+                        }
+                    }
+                }
+
+                Button("📸 Take photo") {
+                    showCamera = true
+                }
+                .font(.subheadline)
+                .foregroundColor(.blue)
+                .padding(6)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+                .sheet(isPresented: $showCamera) {
+                    PhotoCaptureView(sourceType: .camera) { image in
+                        selectedImage = image
+                        vm.markClueAsFound(clueID: clue.id, image: image)
+                    }
+                }
+
+                if clue.userPhotoData != nil {
+                    Button("❌ Remove photo") {
+                        vm.removePhoto(for: clue.id)
+                        selectedImage = nil
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.red)
+                    .padding(6)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(radius: 4)
+        .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x:0,y:1,z:0))
     }
 }

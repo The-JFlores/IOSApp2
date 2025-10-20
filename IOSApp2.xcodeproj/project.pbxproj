@@ -10,9 +10,22 @@
 		89EC00172E8D719800C09466 /* IOSApp2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IOSApp2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		89F734722E9E9D7E00CB042A /* Exceptions for "IOSApp2" folder in "IOSApp2" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 89EC00162E8D719800C09466 /* IOSApp2 */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		89EC00192E8D719800C09466 /* IOSApp2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				89F734722E9E9D7E00CB042A /* Exceptions for "IOSApp2" folder in "IOSApp2" target */,
+			);
 			path = IOSApp2;
 			sourceTree = "<group>";
 		};
@@ -256,7 +269,9 @@
 				DEVELOPMENT_TEAM = 39AM9Z5UCD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IOSApp2/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos of clues.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "we need your location";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app allows selecting existing photos for clues.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -286,7 +301,9 @@
 				DEVELOPMENT_TEAM = 39AM9Z5UCD;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = IOSApp2/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos of clues.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "we need your location";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app allows selecting existing photos for clues.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
